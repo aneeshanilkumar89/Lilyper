@@ -1,0 +1,10 @@
+POST /agents/ai-chat/chat HTTP/1.1
+Host: chat.example.com
+Cookie: access_token=REPLACE_WITH_VALID_TOKEN
+Content-Type: application/json
+Accept: text/event-stream, application/json
+Origin: https://chat.example.com
+Referer: https://chat.example.com/agents/support-agent/overview
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36
+
+{"message":"FUZZ","history":[],"agent_scope":"support-agent","page_context":"Operations Overview - team status, open items and reports.","chat_context":"agent","context_ref":{"kind":"agent","dashboard_public_id":null,"agent_slug":"support-agent","page_key":"overview","resource_id":null}}
