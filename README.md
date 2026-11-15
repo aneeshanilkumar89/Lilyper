@@ -1,4 +1,4 @@
-# Lilyper (formerly LLMap)
+# Lilyper
 
 sqlmap-style LLM/agent security tester. Load a raw HTTP request (sqlmap `-r`
 concept), mark the injection position with `FUZZ` (wfuzz concept), fire a
