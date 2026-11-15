@@ -84,6 +84,15 @@ def build_parser():
     p.add_argument("--baseline", default="Hello! Quick test - reply with one short sentence.")
     p.add_argument("--canary", action="store_true",
                    help="append unique audit-ref token per payload; flag if echoed back")
+    p.add_argument("--judge", action="store_true",
+                   help="opt-in LLM second pass over refusals/near-misses (OpenAI-compatible endpoint); "
+                        "writes judge.json/judge_report.md only, never mixed with deterministic findings")
+    p.add_argument("--judge-url", default=os.environ.get("LILYPER_JUDGE_URL"),
+                   help="OpenAI-compatible base URL incl. /v1, e.g. http://localhost:11434/v1 "
+                        "(Ollama) or your Compass base (env: LILYPER_JUDGE_URL)")
+    p.add_argument("--judge-model", default=os.environ.get("LILYPER_JUDGE_MODEL"),
+                   help="judge model name (env: LILYPER_JUDGE_MODEL). API key via env LILYPER_JUDGE_KEY (optional)")
+    p.add_argument("--judge-timeout", type=int, default=60, help="per-call judge timeout (default 60s)")
     p.add_argument("--output-dir", default=None, help="output dir (default: lilyper_output/<ts>)")
     p.add_argument("--no-insecure", action="store_true", help="verify TLS certs (default: off)")
     p.add_argument("--dry-run", action="store_true", help="print injections, send nothing")

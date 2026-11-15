@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 lilyper_output/
 *.log
+.venv/

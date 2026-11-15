@@ -152,7 +152,63 @@ class Engine(object):
 
         findings.sort(key=lambda f: (SEV_ORDER.get(f["severity"], 9), f["category"]))
         self._report(findings)
+
+        # optional, isolated: LLM second pass. Writes its own files only.
+        # report.md and findings.json above are already final and untouched.
+        if getattr(self.args, "judge", False):
+            self._judge_pass()
+
         return findings
+
+    def _judge_pass(self):
+        """Opt-in LLM review of responses the regex did NOT flag (refusals +
+        near-misses). Output goes to judge.json / judge_report.md only. The
+        deterministic findings are never read from or written to here."""
+        args = self.args
+        if not args.judge_url or not args.judge_model:
+            print("[!] --judge set but --judge-url/--judge-model missing; skipping judge pass.")
+            return
+        from .judge import Judge
+        key = os.environ.get("LILYPER_JUDGE_KEY")
+        judge = Judge(args.judge_url, args.judge_model, key=key, timeout=args.judge_timeout)
+
+        candidates = [r for r in self.results
+                      if not any(d["severity"] in ("CRITICAL", "HIGH", "MEDIUM")
+                                 for d in r["detections"])]
+        print("[*] Judge pass: %d candidate response(s) (refusals + near-misses) via %s"
+              % (len(candidates), args.judge_model))
+
+        judged = []
+        for r in candidates:
+            v = judge.review(r["payload"], r["text"])
+            judged.append({"category": r["category"], "payload": r["payload"],
+                           "status": r["status"], "len": r["len"],
+                           "verdict": v["verdict"], "confidence": v["confidence"],
+                           "reason": v["reason"]})
+            if v["verdict"] in ("comply", "partial"):
+                print("  [JUDGE:%s] %-28s %s"
+                      % (v["verdict"].upper(), r["category"], v["reason"][:80]))
+            if args.delay:
+                time.sleep(args.delay)
+
+        flagged = [j for j in judged if j["verdict"] in ("comply", "partial")]
+        with open(os.path.join(self.outdir, "judge.json"), "w") as fh:
+            json.dump(judged, fh, indent=2)
+        with open(os.path.join(self.outdir, "judge_report.md"), "w") as fh:
+            fh.write("# Lilyper AI-Assisted Review (manual confirmation required)\n\n")
+            fh.write("*These are LLM judgments, NOT deterministic findings. "
+                     "Confirm every one by hand before putting it in a report.*\n\n")
+            fh.write("*Judge model:* %s  \n*Reviewed:* %d  \n*Flagged:* %d\n\n"
+                     % (args.judge_model, len(judged), len(flagged)))
+            if not flagged:
+                fh.write("No comply/partial verdicts.\n")
+            for j in flagged:
+                fh.write("### [%s conf=%.2f] %s\n\n"
+                         % (j["verdict"].upper(), float(j["confidence"] or 0), j["category"]))
+                fh.write("* Payload: `%s`\n" % j["payload"][:300])
+                fh.write("* Reason: %s\n\n" % j["reason"])
+        print("[+] Judge: %d flagged of %d reviewed. See %s"
+              % (len(flagged), len(judged), os.path.join(self.outdir, "judge_report.md")))
 
     @staticmethod
     def _burp_search(payload):
