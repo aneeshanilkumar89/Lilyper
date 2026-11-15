@@ -34,6 +34,10 @@ detect hits with deterministic regex signatures (pyrit-scorer concept) -
     # custom payload list appended
     python3 lilyper.py -r request.txt --extra-payloads mypayloads.txt
 
+    # optional LLM second pass over refusals/near-misses (separate output)
+    python3 lilyper.py -r request.txt --judge \
+        --judge-url http://localhost:11434/v1 --judge-model llama3.1
+
 ## Request file
 
 Raw HTTP exactly as captured (headers + blank line + body). Put `FUZZ` where
@@ -50,9 +54,14 @@ are decoded to real characters automatically.
 
 - Level 1 = recon, 2 = standard battery (default), 3 = aggressive
   (override framing, regex-priming, action attempts). `--level 3` to enable.
-- Files in `payloads/`: `llm01`..`llm10` (OWASP LLM Top 10 2025) and
-  `ag01`..`ag06` (agentic: identity spoofing, trust boundaries, context
-  corruption, onward injection, unbounded agency, tool abuse).
+- Files in `payloads/` (212 payloads across 24 categories):
+  - `llm01`..`llm10` - OWASP LLM Top 10 2025.
+  - `ag01`..`ag10` - OWASP Top 10 for Agentic Applications (identity spoofing,
+    trust boundaries, context/memory, onward injection, unbounded agency, tool
+    abuse, goal hijacking, code execution, supply chain, cascading/rogue).
+  - `evd01`..`evd03`, `ind01` - technique layer: obfuscation/encoding, policy
+    puppetry, multi-turn/many-shot seeds, indirect/stored injection. Evasion
+    probes use a benign `LILYCANARY` sentinel so a hit is unambiguous.
 - Format: one payload per line, `#` comments, optional `1|`/`3|` level prefix.
 
 ## Detection (no LLM)
@@ -71,12 +80,25 @@ are decoded to real characters automatically.
 MEDIUM+ findings trigger automatic confirmation reruns (`--confirm`, default
 2 -> reliability reported as N/N+1).
 
+## AI-assisted review (optional)
+
+`--judge` adds an opt-in LLM second pass over responses the regex did not flag
+(refusals and near-misses), to catch semantic leaks that match no fixed
+signature. It talks to any OpenAI-compatible endpoint (`--judge-url`,
+`--judge-model`, key via the `LILYPER_JUDGE_KEY` env var), so it works with a
+local model (Ollama, LM Studio) or a hosted one. Verdicts are written to
+`judge.json` and `judge_report.md` only, and are never mixed into the
+deterministic `findings.json` / `report.md`. Off by default: a run without
+`--judge` is byte-for-byte the deterministic result.
+
 ## Output
 
     lilyper_output/<timestamp>/
       report.md          findings + Burp search strings + full request table
       findings.json      machine-readable findings
       evidence/          0001_req.txt / 0001_resp.txt per request (screenshot source)
+      judge_report.md    (only with --judge) AI-assisted review, manual confirm
+      judge.json         (only with --judge) machine-readable judge verdicts
 
 ## Notes / limits
 
@@ -85,3 +107,5 @@ MEDIUM+ findings trigger automatic confirmation reruns (`--confirm`, default
   sharing output. Tokens may rotate mid-run: if 401 storms appear, recapture.
 - Multi-turn poisoning (history[] injection) needs the history field edited
   in the request template per attempt (see ag03 payloads).
+- Indirect-injection (`ind01`) payloads are meant to be planted in content the
+  agent ingests (a document, field, or tool output), not sent as the user turn.

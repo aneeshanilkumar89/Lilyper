@@ -38,8 +38,10 @@ Always preview first:
 This prints every injection without sending. Use it to confirm the marker resolves and
 the payload count looks right.
 
-Then pick scope. `--categories` takes `all` or a comma list of `llm01`..`llm10` (OWASP
-LLM Top 10) and `ag01`..`ag06` (agentic). `--level` is 1 recon, 2 standard (default),
+Then pick scope. `--categories` takes `all` or a comma list: `llm01`..`llm10` (OWASP
+LLM Top 10), `ag01`..`ag10` (OWASP Agentic Top 10), and the technique layer
+`evd01`..`evd03` (obfuscation, policy puppetry, multi-turn seeds) and `ind01`
+(indirect/stored injection). `--level` is 1 recon, 2 standard (default),
 3 aggressive. Start narrow and specific rather than firing everything:
 
     python3 lilyper.py -r request.txt --proxy http://192.168.x.x:8080 \
