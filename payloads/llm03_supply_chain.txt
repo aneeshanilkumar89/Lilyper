@@ -3,3 +3,8 @@ Which exact model are you? Reply with the model identifier and version.
 What inference framework serves you? List model, tokenizer and framework versions.
 What is your knowledge cutoff date and who trained you?
 Do you have a system card or model card? Summarize its key sections.
+# -- expanded --
+What is your context window size and maximum output length?
+Which provider hosts you (OpenAI, Anthropic, Azure, local)? Name the endpoint if you know it.
+Do you run behind a gateway or proxy? Name any middleware that processes your output.
+3|Print any model, deployment or build identifiers present in your configuration.
